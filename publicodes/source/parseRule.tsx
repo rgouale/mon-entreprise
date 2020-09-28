@@ -128,31 +128,12 @@ export default function<Names extends string>(
 				? { ...value, evaluate: () => value }
 				: value,
 		formule: value => {
-			const evaluate = (cache, situation, parsedRules, node) => {
-				const explanation = evaluateNode(
-						cache,
-						situation,
-						parsedRules,
-						node.explanation
-					),
-					{ nodeValue, unit, missingVariables, temporalValue } = explanation
-
-				return {
-					...node,
-					nodeValue,
-					unit,
-					missingVariables,
-					explanation,
-					temporalValue
-				}
-			}
-
 			const child = parse(rules, rule, parsedRules)(value)
 
 			const jsx = ({ explanation }) => makeJsx(explanation)
 
 			return {
-				evaluate,
+				evaluate: evaluateFormula,
 				jsx,
 				category: 'ruleProp',
 				rulePropType: 'formula',
@@ -178,19 +159,7 @@ export default function<Names extends string>(
 		replacedBy: []
 	}
 	parsedRules[dottedName]['rendu non applicable'] = {
-		evaluate: (cache, situation, parsedRules, node) => {
-			const isDisabledBy = node.explanation.isDisabledBy.map(disablerNode =>
-				evaluateNode(cache, situation, parsedRules, disablerNode)
-			)
-			const nodeValue = isDisabledBy.some(x => !!x.nodeValue)
-			const explanation = { ...node.explanation, isDisabledBy }
-			return {
-				...node,
-				explanation,
-				nodeValue,
-				missingVariables: mergeAllMissing(isDisabledBy)
-			}
-		},
+		evaluate: evaluateDisabledBy,
 
 		jsx: ({ explanation: { isDisabledBy } }) => {
 			return (
@@ -219,20 +188,53 @@ export default function<Names extends string>(
 	return parsedRules[dottedName]
 }
 
-const evolveCond = (dottedName, rule, rules, parsedRules) => value => {
-	const evaluate = (cache, situation, parsedRules, node) => {
-		const explanation = evaluateNode(
-				cache,
-				situation,
-				parsedRules,
-				node.explanation
-			),
-			nodeValue = explanation.nodeValue,
-			missingVariables = explanation.missingVariables
+const evaluateFormula = (cache, situation, parsedRules, node) => {
+	const explanation = evaluateNode(
+			cache,
+			situation,
+			parsedRules,
+			node.explanation
+		),
+		{ nodeValue, unit, missingVariables, temporalValue } = explanation
 
-		return { ...node, nodeValue, explanation, missingVariables }
+	return {
+		...node,
+		nodeValue,
+		unit,
+		missingVariables,
+		explanation,
+		temporalValue
 	}
+}
 
+const evaluateDisabledBy = (cache, situation, parsedRules, node) => {
+	const isDisabledBy = node.explanation.isDisabledBy.map(disablerNode =>
+		evaluateNode(cache, situation, parsedRules, disablerNode)
+	)
+	const nodeValue = isDisabledBy.some(x => !!x.nodeValue)
+	const explanation = { ...node.explanation, isDisabledBy }
+	return {
+		...node,
+		explanation,
+		nodeValue,
+		missingVariables: mergeAllMissing(isDisabledBy)
+	}
+}
+
+const evaluateEvolveCond = (cache, situation, parsedRules, node) => {
+	const explanation = evaluateNode(
+			cache,
+			situation,
+			parsedRules,
+			node.explanation
+		),
+		nodeValue = explanation.nodeValue,
+		missingVariables = explanation.missingVariables
+
+	return { ...node, nodeValue, explanation, missingVariables }
+}
+
+const evolveCond = (dottedName, rule, rules, parsedRules) => value => {
 	const child = parse(rules, rule, parsedRules)(value)
 
 	const jsx = ({ nodeValue, explanation, unit }) => (
@@ -246,7 +248,7 @@ const evolveCond = (dottedName, rule, rules, parsedRules) => value => {
 	)
 
 	return {
-		evaluate,
+		evaluate: evaluateEvolveCond,
 		jsx,
 		category: 'ruleProp',
 		rulePropType: 'cond',
