@@ -179,10 +179,10 @@ Par défaut, seul le premier s'applique. Si vous voulez un autre comportement, v
 			applicabilityEvaluation
 		)
 	}
-	const situationValue = situation[dottedName]?.evaluate
-		? evaluateNode(cache, situation, rules, situation[dottedName])
-		: situation[dottedName]
-	if (situationValue != null) {
+	if (situation[dottedName]) {
+		const situationValue = situation[dottedName]?.evaluate
+			? evaluateNode(cache, situation, rules, situation[dottedName])
+			: situation[dottedName]
 		const unit =
 			!situationValue.unit || serializeUnit(situationValue.unit) === ''
 				? rule.unit
