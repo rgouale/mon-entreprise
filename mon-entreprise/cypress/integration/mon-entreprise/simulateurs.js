@@ -143,4 +143,16 @@ describe('Simulateur salarié', () => {
 		cy.contains('Voir ma situation').click()
 		cy.contains('Steenvoorde (59114)')
 	})
+
+	it('should permit select the smic before part-time contrat', function() {
+		cy.get('button')
+			.contains('SMIC')
+			.click()
+		cy.get('Retrouver ma simulation').click()
+		cy.get('Temps Partiel').click()
+		cy.get('input[value="oui"]').click()
+		cy.get(
+			'input[name="contrat salarié . rémunération . brut de base"]'
+		).should('be.lessThan', 1300)
+	})
 })
